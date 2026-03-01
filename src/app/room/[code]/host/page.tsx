@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import YouTube, { YouTubeEvent } from "react-youtube";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,14 +27,14 @@ export default function HostRoom({
   const [code, setCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [currentSong, setCurrentSong] = useState<PlaylistSong | null>(null);
-  const [lastPlayedSongId, setLastPlayedSongId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     params.then((p) => setCode(p.code.toUpperCase()));
   }, [params]);
 
-  // 1. Fetch Room
-  const { data: roomId } = useQuery({
+  // 1. 방 정보 가져오기
+  const { data: roomId, error: roomError } = useQuery({
     queryKey: ["room", code],
     queryFn: async () => {
       if (!code) return null;
@@ -46,15 +46,15 @@ export default function HostRoom({
         .single();
 
       if (error || !room) {
-        notFound();
+        throw error;
       }
       return room.id as string;
     },
     enabled: !!code,
   });
 
-  // 2. Fetch Playlist
-  const { data: playlist = [] } = useQuery({
+  // 2. 재생 목록 가져오기
+  const { data: playlist = [], isError: playlistError } = useQuery({
     queryKey: ["playlist", roomId],
     queryFn: async () => {
       if (!roomId) return [];
@@ -95,63 +95,57 @@ export default function HostRoom({
     };
   }, [roomId, queryClient]);
 
-  // We use a ref so the YouTube player event handlers always have access to the latest state without re-creating the player
+  // 에러 핸들링
+  useEffect(() => {
+    if (roomError) {
+      toast.error("방을 찾을 수 없습니다.");
+      router.push("/");
+    } else if (playlistError) {
+      toast.error("재생 목록을 가져올 수 없습니다.");
+      router.push("/");
+    }
+  }, [roomError, playlistError, router]);
+
+  // YouTube 플레이어 이벤트 핸들러에서 최신 상태에 접근하기 위한 ref (클로저 문제 방지)
   const currentSongRef = useRef<PlaylistSong | null>(null);
-  const playlistRef = useRef<PlaylistSong[]>([]);
 
   useEffect(() => {
     currentSongRef.current = currentSong;
   }, [currentSong]);
 
-  useEffect(() => {
-    playlistRef.current = playlist;
-  }, [playlist]);
-
-  // Handle Playback Logic: only load initially if nothing is playing
+  // 재생 로직 처리: 현재 재생 중인 곡이 없고 대기열에 곡이 있다면 첫 번째 곡을 재생
   useEffect(() => {
     if (!currentSong && playlist.length > 0) {
-      if (
-        !lastPlayedSongId ||
-        (playlist.length > 0 && playlist.some((s) => s.id !== lastPlayedSongId))
-      ) {
-        // Auto-start first song on page load async to prevent React cascading render warnings
-        const timer = setTimeout(() => {
-          setCurrentSong(playlist[0]);
-        }, 0);
-        return () => clearTimeout(timer);
-      }
+      setCurrentSong(playlist[0]);
     }
-  }, [playlist, currentSong, lastPlayedSongId]);
+  }, [playlist, currentSong]);
 
-  // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+  // YouTube 플레이어 상태 변경 핸들러
   const handleStateChange = async (event: YouTubeEvent) => {
+    console.log("event", event);
+    // 0은 동영상 종료(Ended) 상태를 의미합니다.
     if (event.data === 0) {
-      // ENDED STATE
       const songToEnd = currentSongRef.current;
       if (!songToEnd) return;
 
-      // Set last played immediately so we avoid re-queueing it
-      setLastPlayedSongId(songToEnd.id);
-
-      // Find the next song sequentially
-      const currentIdx = playlistRef.current.findIndex(
-        (s) => s.id === songToEnd.id,
+      // 이전 곡이 다시 재생되는 것을 막기 위해 캐시에서 즉시 비워줍니다 (낙관적 업데이트)
+      queryClient.setQueryData(
+        ["playlist", roomId],
+        (old: PlaylistSong[] | undefined) => {
+          if (!old) return [];
+          return old.filter((song) => song.id !== songToEnd.id);
+        },
       );
-      const nextSong = playlistRef.current[currentIdx + 1];
 
-      if (nextSong) {
-        // Immediately queue up the next video without waiting for the DB/effect cycle
-        setCurrentSong(nextSong);
-      } else {
-        // Queue is empty
-        setCurrentSong(null);
-      }
+      // 현재 곡을 null로 설정하면 useEffect에 의해 다음 첫 번째 곡이 자연스럽게 재생됩니다.
+      setCurrentSong(null);
 
-      // Mark current song as played in DB
+      // DB에서 현재 곡을 재생 완료 처리
       await supabase
         .from("playlist")
         .update({ played_at: new Date().toISOString() })
         .eq("id", songToEnd.id);
+
       if (roomId) {
         queryClient.invalidateQueries({ queryKey: ["playlist", roomId] });
       }
@@ -162,15 +156,15 @@ export default function HostRoom({
     height: "100%",
     width: "100%",
     playerVars: {
-      autoplay: 1, // Auto-play the video on load
+      autoplay: 1, // 로드 시 동영상 자동 재생
       controls: 1,
       modestbranding: 1,
-      playsinline: 1, // Required for iOS and helps with background play on some browsers
+      playsinline: 1, // iOS에서 필수이며 일부 브라우저에서 백그라운드 재생에 도움이 됨
     },
   };
 
   const handleReady = (event: YouTubeEvent) => {
-    // Explicitly call play once ready to help force background play
+    // 백그라운드 재생을 강제할 수 있도록 준비가 완료되면 명시적으로 재생을 호출합니다
     event.target.playVideo();
   };
 
@@ -183,7 +177,7 @@ export default function HostRoom({
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      {/* Left side: Player */}
+      {/* 왼쪽 사이드: 플레이어 */}
       <div className="flex-1 flex flex-col">
         <header className="px-6 py-4 border-b bg-card/50 backdrop-blur-sm flex justify-between items-center z-10">
           <div className="flex items-center gap-3">
@@ -210,10 +204,10 @@ export default function HostRoom({
         <main className="flex-1 flex flex-col items-center justify-center p-6 bg-dot-pattern relative">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]" />
 
-          {/* YouTube Player Wrapper */}
+          {/* YouTube 플레이어 래퍼 */}
           <div className="w-full max-w-5xl z-10 flex flex-col gap-6">
             <Card className="overflow-hidden border-border/50 shadow-2xl bg-card/80 backdrop-blur-xl ring-1 ring-white/10">
-              <div className="aspect-video relative bg-black flex items-center justify-center group">
+              <div className="aspect-video relative bg-background flex items-center justify-center group">
                 {!currentSong ? (
                   <div className="text-muted-foreground flex flex-col items-center gap-4 animate-in fade-in duration-1000">
                     <div className="h-24 w-24 rounded-full bg-muted/20 flex items-center justify-center mb-2">
@@ -236,7 +230,7 @@ export default function HostRoom({
                       className="absolute inset-0 w-full h-full pointer-events-auto z-10"
                       iframeClassName="w-full h-full border-0 absolute top-0 left-0"
                     />
-                    {/* Ambient glow effect behind playing video */}
+                    {/* 재생 중인 동영상 뒤의 은은한 발광 효과 */}
                     <div className="absolute -inset-4 bg-primary/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 -z-10" />
                   </>
                 )}
@@ -267,7 +261,7 @@ export default function HostRoom({
         </main>
       </div>
 
-      {/* Right side: Queue Sidebar */}
+      {/* 오른쪽 사이드: 대기열 사이드바 */}
       <div className="w-[400px] flex flex-col border-l bg-card/30 backdrop-blur-xl">
         <div className="px-6 py-5 border-b bg-card/50">
           <h2 className="text-lg font-semibold flex items-center gap-2">
