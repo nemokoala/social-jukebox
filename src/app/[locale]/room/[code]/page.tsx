@@ -18,8 +18,7 @@ interface PlaylistSong {
   video_id: string;
   title: string;
   thumbnail_url: string;
-  played_at: string | null;
-  added_at: string; // Added for sorting
+  added_at: string;
 }
 
 export default function GuestRoom({
@@ -29,20 +28,21 @@ export default function GuestRoom({
 }) {
   const [code, setCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const [playIndex, setPlayIndex] = useState(0);
   const t = useTranslations("GuestRoom");
 
   useEffect(() => {
     params.then((p) => setCode(p.code.toUpperCase()));
   }, [params]);
 
-  // 1. Fetch Room ID based on code
-  const { data: roomId, isLoading: isRoomLoading } = useQuery({
+  // 1. 방 ID 및 play_index 가져오기
+  const { data: roomData, isLoading: isRoomLoading } = useQuery({
     queryKey: ["room", code],
     queryFn: async () => {
       if (!code) return null;
       const { data: room, error } = await supabase
         .from("rooms")
-        .select("id")
+        .select("id, play_index")
         .eq("code", code)
         .eq("is_active", true)
         .single();
@@ -50,12 +50,21 @@ export default function GuestRoom({
       if (error || !room) {
         notFound();
       }
-      return room.id as string;
+      return room as { id: string; play_index: number };
     },
     enabled: !!code,
   });
 
-  // 2. Fetch active playlist
+  const roomId = roomData?.id;
+
+  // DB의 play_index로 초기값 동기화
+  useEffect(() => {
+    if (roomData?.play_index !== undefined) {
+      setPlayIndex(roomData.play_index);
+    }
+  }, [roomData]);
+
+  // 2. 전체 재생목록 가져오기 (played_at 필터 없이 전체 목록 유지)
   const { data: playlist = [], isLoading: isPlaylistLoading } = useQuery({
     queryKey: ["playlist", roomId],
     queryFn: async () => {
@@ -64,7 +73,6 @@ export default function GuestRoom({
         .from("playlist")
         .select("*")
         .eq("room_id", roomId)
-        .is("played_at", null)
         .order("added_at", { ascending: true });
 
       if (error) throw error;
@@ -73,13 +81,21 @@ export default function GuestRoom({
     enabled: !!roomId,
   });
 
-  const currentSong = playlist.length > 0 ? playlist[0] : null;
-  const queue = playlist.length > 1 ? playlist.slice(1) : [];
+  // play_index 기반으로 현재곡 / 큐 계산
+  const safeIndex =
+    playlist.length > 0 ? Math.min(playIndex, playlist.length - 1) : 0;
+  const currentSong = playlist.length > 0 ? playlist[safeIndex] : null;
+  // 현재곡 이후 부터 순환하여 보여주는 대기열
+  const queue =
+    playlist.length > 1
+      ? [...playlist.slice(safeIndex + 1), ...playlist.slice(0, safeIndex)]
+      : [];
 
+  // playlist 변경 실시간 구독
   useEffect(() => {
     if (!roomId) return;
 
-    const channel = supabase
+    const playlistChannel = supabase
       .channel(`playlist_room_${roomId}`)
       .on(
         "postgres_changes",
@@ -96,8 +112,29 @@ export default function GuestRoom({
       )
       .subscribe();
 
+    // rooms 테이블의 play_index 변경 실시간 구독
+    const roomChannel = supabase
+      .channel(`room_play_index_${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "rooms",
+          filter: `id=eq.${roomId}`,
+        },
+        (payload) => {
+          const newPlayIndex = payload.new.play_index;
+          if (typeof newPlayIndex === "number") {
+            setPlayIndex(newPlayIndex);
+          }
+        },
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(playlistChannel);
+      supabase.removeChannel(roomChannel);
     };
   }, [roomId, queryClient]);
 

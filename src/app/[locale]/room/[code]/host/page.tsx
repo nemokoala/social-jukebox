@@ -20,7 +20,7 @@ interface PlaylistSong {
   video_id: string;
   title: string;
   thumbnail_url: string;
-  played_at: string | null;
+  added_at: string;
 }
 
 export default function HostRoom({
@@ -31,6 +31,7 @@ export default function HostRoom({
   const [code, setCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [currentSong, setCurrentSong] = useState<PlaylistSong | null>(null);
+  const [playIndex, setPlayIndex] = useState(0);
   const [showAlert, setShowAlert] = useState(true);
   const router = useRouter();
   const t = useTranslations("HostRoom");
@@ -39,14 +40,14 @@ export default function HostRoom({
     params.then((p) => setCode(p.code.toUpperCase()));
   }, [params]);
 
-  // 1. 방 정보 가져오기
-  const { data: roomId, error: roomError } = useQuery({
+  // 1. 방 정보 가져오기 (play_index 포함)
+  const { data: roomData, error: roomError } = useQuery({
     queryKey: ["room", code],
     queryFn: async () => {
       if (!code) return null;
       const { data: room, error } = await supabase
         .from("rooms")
-        .select("id")
+        .select("id, play_index")
         .eq("code", code)
         .eq("is_active", true)
         .single();
@@ -54,12 +55,23 @@ export default function HostRoom({
       if (error || !room) {
         throw error;
       }
-      return room.id as string;
+      return room as { id: string; play_index: number };
     },
     enabled: !!code,
   });
 
-  // 2. 재생 목록 가져오기
+  const roomId = roomData?.id;
+
+  // DB의 play_index로 초기 동기화 (최초 1회)
+  const hasInitializedIndex = useRef(false);
+  useEffect(() => {
+    if (roomData?.play_index !== undefined && !hasInitializedIndex.current) {
+      hasInitializedIndex.current = true;
+      setPlayIndex(roomData.play_index);
+    }
+  }, [roomData]);
+
+  // 2. 재생 목록 가져오기 (played_at 필터 제거 - 전체 목록 유지)
   const { data: playlist = [], isError: playlistError } = useQuery({
     queryKey: ["playlist", roomId],
     queryFn: async () => {
@@ -68,7 +80,6 @@ export default function HostRoom({
         .from("playlist")
         .select("*")
         .eq("room_id", roomId)
-        .is("played_at", null)
         .order("added_at", { ascending: true });
 
       if (error) throw error;
@@ -113,47 +124,58 @@ export default function HostRoom({
   }, [roomError, playlistError, router, t]);
 
   // YouTube 플레이어 이벤트 핸들러에서 최신 상태에 접근하기 위한 ref (클로저 문제 방지)
-  const currentSongRef = useRef<PlaylistSong | null>(null);
+  const playIndexRef = useRef(0);
+  const playlistRef = useRef<PlaylistSong[]>([]);
+  // YouTube 플레이어 인스턴스 ref (1곡 반복 재생 시 직접 제어용)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playerRef = useRef<any>(null);
 
   useEffect(() => {
-    currentSongRef.current = currentSong;
-  }, [currentSong]);
+    playIndexRef.current = playIndex;
+  }, [playIndex]);
 
-  // 재생 로직 처리: 현재 재생 중인 곡이 없고 대기열에 곡이 있다면 첫 번째 곡을 재생
   useEffect(() => {
-    if (!currentSong && playlist.length > 0) {
-      setCurrentSong(playlist[0]);
+    playlistRef.current = playlist;
+  }, [playlist]);
+
+  // 재생 로직 처리: playlist가 업데이트될 때 현재 곡 동기화
+  useEffect(() => {
+    if (playlist.length === 0) {
+      setCurrentSong(null);
+      return;
     }
-  }, [playlist, currentSong]);
+    // playIndex가 범위를 벗어나면 0으로 리셋
+    const safeIndex = playIndex < playlist.length ? playIndex : 0;
+    if (safeIndex !== playIndex) setPlayIndex(0);
+    setCurrentSong(playlist[safeIndex]);
+  }, [playlist]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // YouTube 플레이어 상태 변경 핸들러
-  const handleStateChange = async (event: YouTubeEvent) => {
-    console.log("event", event);
+  const handleStateChange = (event: YouTubeEvent) => {
     // 0은 동영상 종료(Ended) 상태를 의미합니다.
     if (event.data === 0) {
-      const songToEnd = currentSongRef.current;
-      if (!songToEnd) return;
+      const currentPlaylist = playlistRef.current;
+      if (currentPlaylist.length === 0) return;
 
-      // 이전 곡이 다시 재생되는 것을 막기 위해 캐시에서 즉시 비워줍니다 (낙관적 업데이트)
-      queryClient.setQueryData(
-        ["playlist", roomId],
-        (old: PlaylistSong[] | undefined) => {
-          if (!old) return [];
-          return old.filter((song) => song.id !== songToEnd.id);
-        },
-      );
+      // 다음 인덱스 계산 (마지막 곡이면 0으로 순환)
+      const nextIndex = (playIndexRef.current + 1) % currentPlaylist.length;
 
-      // 현재 곡을 null로 설정하면 useEffect에 의해 다음 첫 번째 곡이 자연스럽게 재생됩니다.
-      setCurrentSong(null);
-
-      // DB에서 현재 곡을 재생 완료 처리
-      await supabase
-        .from("playlist")
-        .update({ played_at: new Date().toISOString() })
-        .eq("id", songToEnd.id);
-
-      if (roomId) {
-        queryClient.invalidateQueries({ queryKey: ["playlist", roomId] });
+      if (nextIndex === playIndexRef.current) {
+        // 1곡인 경우: videoId가 동일해서 React가 변경을 감지하지 못하므로
+        // YouTube 플레이어 API를 직접 호출하여 처음부터 다시 재생
+        playerRef.current?.seekTo(0);
+        playerRef.current?.playVideo();
+      } else {
+        setPlayIndex(nextIndex);
+        setCurrentSong(currentPlaylist[nextIndex]);
+        // DB의 play_index 업데이트 → 게스트 페이지에서 Realtime으로 감지
+        if (roomId) {
+          supabase
+            .from("rooms")
+            .update({ play_index: nextIndex })
+            .eq("id", roomId)
+            .then(() => {});
+        }
       }
     }
   };
@@ -170,6 +192,8 @@ export default function HostRoom({
   };
 
   const handleReady = (event: YouTubeEvent) => {
+    // 플레이어 인스턴스를 ref에 저장 (1곡 반복 재생 시 직접 제어용)
+    playerRef.current = event.target;
     // 백그라운드 재생을 강제할 수 있도록 준비가 완료되면 명시적으로 재생을 호출합니다
     event.target.playVideo();
   };
