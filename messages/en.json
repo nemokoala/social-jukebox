@@ -38,5 +38,21 @@
     "guest_desc": "Enter the <span class=\"font-bold text-primary\">4-digit code</span> provided by the host to join the room. Then, you can freely search and add songs you want to hear from your own smartphone.",
     "listen_title": "🎧 Enjoy together",
     "listen_desc": "Added songs are registered in the playlist and played in order. Listen to your favorite music together!"
+  },
+  "GuestRoom": {
+    "loading_room": "Loading Room...",
+    "header_title": "Room",
+    "header_code": "Code:",
+    "btn_add_song": "Add Song",
+    "now_playing": "Now Playing",
+    "loading_song": "Loading current song...",
+    "playing_badge": "Playing",
+    "youtube_audio": "YouTube Audio",
+    "no_song": "No song is currently playing",
+    "first_to_add": "Be the first to add a song",
+    "up_next": "Up Next",
+    "loading_queue": "Loading queue...",
+    "empty_queue": "The queue is empty.<br /> Add a song to keep the music going!",
+    "in_queue": "#{number} in queue"
   }
 }

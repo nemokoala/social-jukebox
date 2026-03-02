@@ -38,5 +38,21 @@
     "guest_desc": "호스트가 알려준 <span class=\"font-bold text-primary\">4자리 코드</span>를 입력해 방에 접속합니다. 그 후 각자의 스마트폰에서 듣고 싶은 노래를 자유롭게 검색해 추가할 수 있습니다.",
     "listen_title": "🎧 다 함께 감상하기",
     "listen_desc": "추가된 노래들은 플레이리스트에 등록되어 순서대로 재생됩니다. 다 함께 원하는 음악을 감상해 보세요!"
+  },
+  "GuestRoom": {
+    "loading_room": "방 정보를 불러오는 중...",
+    "header_title": "음악방",
+    "header_code": "코드:",
+    "btn_add_song": "노래 추가",
+    "now_playing": "지금 재생 중",
+    "loading_song": "현재 곡을 불러오는 중...",
+    "playing_badge": "재생 중",
+    "youtube_audio": "YouTube 오디오",
+    "no_song": "현재 재생 중인 곡이 없습니다",
+    "first_to_add": "첫 번째 노래를 추가해보세요",
+    "up_next": "다음 대기열",
+    "loading_queue": "대기열을 불러오는 중...",
+    "empty_queue": "대기열이 비어 있습니다.<br /> 노래를 추가해 음악을 이어가세요!",
+    "in_queue": "대기열 {number}번째"
   }
 }

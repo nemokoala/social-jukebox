@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Music, Play, Plus, Search, Disc3, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface PlaylistSong {
   id: string;
@@ -27,6 +28,7 @@ export default function GuestRoom({
 }) {
   const [code, setCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const t = useTranslations("GuestRoom");
 
   useEffect(() => {
     params.then((p) => setCode(p.code.toUpperCase()));
@@ -101,7 +103,7 @@ export default function GuestRoom({
   if (isRoomLoading || !code) {
     return (
       <div className="flex h-screen items-center justify-center">
-        Loading Room...
+        {t("loading_room")}
       </div>
     );
   }
@@ -115,9 +117,11 @@ export default function GuestRoom({
             <Radio className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight">Room</h1>
+            <h1 className="text-lg font-bold leading-tight">
+              {t("header_title")}
+            </h1>
             <p className="text-xs text-muted-foreground font-mono">
-              Code:{" "}
+              {t("header_code")}{" "}
               <Badge
                 variant="secondary"
                 className="px-1.5 py-0 h-4 text-[10px]"
@@ -133,7 +137,7 @@ export default function GuestRoom({
           trigger={
             <Button size="sm" className="gap-2 shadow-sm rounded-full px-4">
               <Plus className="w-4 h-4" />
-              Add Song
+              {t("btn_add_song")}
             </Button>
           }
         />
@@ -145,7 +149,7 @@ export default function GuestRoom({
         <section className="animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-              <Disc3 className="w-4 h-4" /> Now Playing
+              <Disc3 className="w-4 h-4" /> {t("now_playing")}
             </h2>
           </div>
 
@@ -156,7 +160,7 @@ export default function GuestRoom({
                   <Music className="h-6 w-6 text-muted-foreground/50" />
                 </div>
                 <p className="text-muted-foreground font-medium animate-pulse">
-                  Loading current song...
+                  {t("loading_song")}
                 </p>
               </CardContent>
             ) : currentSong ? (
@@ -179,7 +183,7 @@ export default function GuestRoom({
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                     </span>
-                    Playing
+                    {t("playing_badge")}
                   </Badge>
                   <h3
                     className="font-bold text-lg leading-tight line-clamp-2 mb-1"
@@ -187,7 +191,7 @@ export default function GuestRoom({
                   />
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-auto pt-2">
                     <Music className="w-3.5 h-3.5" />
-                    YouTube Audio
+                    {t("youtube_audio")}
                   </p>
                 </CardContent>
               </div>
@@ -197,7 +201,7 @@ export default function GuestRoom({
                   <Music className="h-6 w-6 text-muted-foreground/50" />
                 </div>
                 <p className="text-muted-foreground font-medium">
-                  No song is currently playing
+                  {t("no_song")}
                 </p>
                 <SearchDialog
                   roomId={roomId!}
@@ -207,7 +211,7 @@ export default function GuestRoom({
                       size="sm"
                       className="mt-2 rounded-full"
                     >
-                      Be the first to add a song
+                      {t("first_to_add")}
                     </Button>
                   }
                 />
@@ -220,7 +224,7 @@ export default function GuestRoom({
         <section className="flex-1 flex flex-col animate-in slide-in-from-bottom-8 duration-700 delay-100 fill-mode-both">
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
-              Up Next
+              {t("up_next")}
               <Badge
                 variant="outline"
                 className="ml-1 font-mono text-xs rounded-full px-2"
@@ -235,16 +239,16 @@ export default function GuestRoom({
               <div className="flex flex-col items-center justify-center h-48 text-center space-y-4 p-6 animate-pulse">
                 <Search className="h-10 w-10 text-muted-foreground/30" />
                 <p className="text-muted-foreground text-sm">
-                  Loading queue...
+                  {t("loading_queue")}
                 </p>
               </div>
             ) : queue.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center space-y-4 p-6">
                 <Search className="h-10 w-10 text-muted-foreground/30" />
-                <p className="text-muted-foreground text-sm">
-                  The queue is empty.
-                  <br /> Add a song to keep the music going!
-                </p>
+                <p
+                  className="text-muted-foreground text-sm"
+                  dangerouslySetInnerHTML={{ __html: t.raw("empty_queue") }}
+                />
               </div>
             ) : (
               <ScrollArea className="h-[40vh] md:h-auto md:max-h-[500px]">
@@ -272,7 +276,7 @@ export default function GuestRoom({
                             dangerouslySetInnerHTML={{ __html: song.title }}
                           />
                           <p className="text-xs text-muted-foreground font-mono">
-                            #{index + 1} in queue
+                            {t("in_queue", { number: index + 1 })}
                           </p>
                         </div>
                       </CardContent>
