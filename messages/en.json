@@ -1,6 +1,6 @@
 {
   "Index": {
-    "title": "Social Jukebox",
+    "title": "JukeRoom",
     "description": "Listen to music together with friends.",
     "join_title": "Join a Room",
     "join_description": "Enter a 4-digit code to join an existing session.",
@@ -30,7 +30,7 @@
   },
   "TutorialModal": {
     "btn_text": "How to use",
-    "title": "Jukebox",
+    "title": "JukeRoom",
     "description": "It's a service where you can enjoy music<br />together with people in the same space! 🎵",
     "host_title": "👑 Host",
     "host_desc": "Create a new room through 'Create Room' and play music by <strong>using the current device as a speaker</strong>.",

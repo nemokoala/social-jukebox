@@ -21,8 +21,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "jukebox",
-  description: "노래를 재생하는 음악방",
+  title: "JukeRoom",
+  description: "친구들과 함께 노래를 듣는 공간",
 };
 
 export default async function RootLayout({
