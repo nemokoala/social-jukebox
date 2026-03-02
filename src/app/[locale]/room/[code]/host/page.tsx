@@ -9,9 +9,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Music, Play, Disc3 } from "lucide-react";
+import { Music, Play, Disc3, Info, X } from "lucide-react";
 import { toast } from "sonner";
 import { RoomHeader } from "@/components/RoomHeader";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 interface PlaylistSong {
   id: string;
@@ -29,6 +31,7 @@ export default function HostRoom({
   const [code, setCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [currentSong, setCurrentSong] = useState<PlaylistSong | null>(null);
+  const [showAlert, setShowAlert] = useState(true);
   const router = useRouter();
   const t = useTranslations("HostRoom");
 
@@ -195,6 +198,27 @@ export default function HostRoom({
 
           {/* YouTube 플레이어 래퍼 */}
           <div className="w-full max-w-5xl z-10 flex flex-col gap-4 md:gap-6 mt-auto mb-auto">
+            {showAlert && (
+              <Alert className="bg-stone-400/10 border-primary/20 text-foreground animate-in fade-in slide-in-from-top duration-500 relative pr-12">
+                <Info className="h-4 w-4" />
+                <AlertTitle className="font-semibold">
+                  {t("warning_autoplay_title")}
+                </AlertTitle>
+                <AlertDescription className="text-muted-foreground pr-4">
+                  {t("warning_autoplay_description")}
+                </AlertDescription>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 h-8 w-8 text-muted-foreground hover:bg-primary/20 hover:text-foreground"
+                  onClick={() => setShowAlert(false)}
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </Button>
+              </Alert>
+            )}
+
             <Card className="overflow-hidden border-border/50 shadow-lg md:shadow-2xl bg-card/80 backdrop-blur-xl ring-1 ring-white/10">
               <div className="aspect-video relative bg-background flex items-center justify-center group overflow-hidden">
                 {!currentSong ? (

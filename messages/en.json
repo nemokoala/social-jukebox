@@ -26,7 +26,9 @@
     "now_playing": "Now Playing",
     "up_next": "Up Next",
     "songs_count": "{count} {count, plural, =1 {song} other {songs}}",
-    "queue_empty": "Queue is empty. <br /> Add songs from your phone!"
+    "queue_empty": "Queue is empty. <br /> Add songs from your phone!",
+    "warning_autoplay_title": "Auto-play Warning",
+    "warning_autoplay_description": "Auto-playing next songs might not work if the browser tab is changed. We recommend keeping this in a separate window to ensure seamless playback."
   },
   "TutorialModal": {
     "btn_text": "How to use",
