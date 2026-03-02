@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Music, Play, Plus, Search, Disc3, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { RoomHeader } from "@/components/RoomHeader";
 
 interface PlaylistSong {
   id: string;
@@ -111,37 +112,22 @@ export default function GuestRoom({
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background text-foreground">
       {/* Header */}
-      <header className="px-4 py-3 border-b bg-card/80 backdrop-blur-md sticky top-0 z-10 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-            <Radio className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold leading-tight">
-              {t("header_title")}
-            </h1>
-            <p className="text-xs text-muted-foreground font-mono">
-              {t("header_code")}{" "}
-              <Badge
-                variant="secondary"
-                className="px-1.5 py-0 h-4 text-[10px]"
-              >
-                {code}
-              </Badge>
-            </p>
-          </div>
-        </div>
-
-        <SearchDialog
-          roomId={roomId!}
-          trigger={
-            <Button size="sm" className="gap-2 shadow-sm rounded-full px-4">
-              <Plus className="w-4 h-4" />
-              {t("btn_add_song")}
-            </Button>
-          }
-        />
-      </header>
+      <RoomHeader
+        title={t("header_title")}
+        code={code || ""}
+        subtitle={t("header_code")}
+        rightElement={
+          <SearchDialog
+            roomId={roomId!}
+            trigger={
+              <Button size="sm" className="gap-2 shadow-sm rounded-full px-4">
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">{t("btn_add_song")}</span>
+              </Button>
+            }
+          />
+        }
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col pt-4 px-4 pb-24 md:pb-6 max-w-2xl mx-auto w-full gap-6">

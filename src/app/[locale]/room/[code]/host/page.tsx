@@ -3,15 +3,15 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import YouTube, { YouTubeEvent } from "react-youtube";
-import { notFound } from "next/navigation";
 import { useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Music, Play, Disc3, Radio } from "lucide-react";
+import { Music, Play, Disc3 } from "lucide-react";
 import { toast } from "sonner";
+import { RoomHeader } from "@/components/RoomHeader";
 
 interface PlaylistSong {
   id: string;
@@ -179,40 +179,24 @@ export default function HostRoom({
   };
 
   return (
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      {/* 왼쪽 사이드: 플레이어 */}
-      <div className="flex-1 flex flex-col">
-        <header className="px-6 py-4 border-b bg-card/50 backdrop-blur-sm flex justify-between items-center z-10">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Radio className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                {t("header_title")}
-              </h1>
-              <p className="text-muted-foreground text-sm flex items-center gap-2">
-                {t("header_subtitle")}
-                <Badge
-                  variant="secondary"
-                  className="font-mono text-sm px-2 cursor-pointer hover:bg-secondary/80 transition-colors"
-                  onClick={copyRoomCode}
-                >
-                  {code}{" "}
-                  <Copy className="w-3 h-3 ml-2 inline-block opacity-50" />
-                </Badge>
-              </p>
-            </div>
-          </div>
-        </header>
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-background text-foreground overflow-hidden">
+      {/* 플레이어 사이드 */}
+      <div className="flex-1 flex flex-col min-h-0 md:min-h-screen relative">
+        <RoomHeader
+          title={t("header_title")}
+          code={code || ""}
+          subtitle={t("header_subtitle")}
+          isHost
+          onCopy={copyRoomCode}
+        />
 
-        <main className="flex-1 flex flex-col items-center justify-center p-6 bg-dot-pattern relative">
+        <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 bg-dot-pattern relative overflow-auto">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]" />
 
           {/* YouTube 플레이어 래퍼 */}
-          <div className="w-full max-w-5xl z-10 flex flex-col gap-6">
-            <Card className="overflow-hidden border-border/50 shadow-2xl bg-card/80 backdrop-blur-xl ring-1 ring-white/10">
-              <div className="aspect-video relative bg-background flex items-center justify-center group">
+          <div className="w-full max-w-5xl z-10 flex flex-col gap-4 md:gap-6 mt-auto mb-auto">
+            <Card className="overflow-hidden border-border/50 shadow-lg md:shadow-2xl bg-card/80 backdrop-blur-xl ring-1 ring-white/10">
+              <div className="aspect-video relative bg-background flex items-center justify-center group overflow-hidden">
                 {!currentSong ? (
                   <div className="text-muted-foreground flex flex-col items-center gap-4 animate-in fade-in duration-1000">
                     <div className="h-24 w-24 rounded-full bg-muted/20 flex items-center justify-center mb-2">
@@ -264,8 +248,8 @@ export default function HostRoom({
         </main>
       </div>
 
-      {/* 오른쪽 사이드: 대기열 사이드바 */}
-      <div className="w-[400px] flex flex-col border-l bg-card/30 backdrop-blur-xl">
+      {/* 오른쪽 사이드: 대기열 사이드바 (모바일은 하단으로 이동) */}
+      <div className="w-full md:w-[400px] h-[40vh] md:h-full flex flex-col border-t md:border-t-0 md:border-l bg-card/30 backdrop-blur-xl shrink-0">
         <div className="px-6 py-5 border-b bg-card/50">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Disc3 className="w-5 h-5 text-primary" />
