@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import Providers from "@/components/Providers";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
+import { notFound } from "next/navigation";
+import { routing } from "@/i18n/routing";
 
 const pretendard = localFont({
-  src: "./fonts/Pretendard.woff2",
+  src: "../fonts/Pretendard.woff2",
   display: "swap",
   weight: "45 920",
   variable: "--font-pretendard",
@@ -21,17 +25,29 @@ export const metadata: Metadata = {
   description: "노래를 재생하는 음악방",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
+  params,
+}: {
   children: React.ReactNode;
-}>) {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
+  if (!routing.locales.includes(locale as any)) {
+    notFound();
+  }
+
+  const messages = await getMessages();
+
   return (
-    <html lang="ko">
+    <html lang={locale}>
       <body
         className={`${pretendard.variable} ${pretendard.className} ${geistMono.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider messages={messages}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

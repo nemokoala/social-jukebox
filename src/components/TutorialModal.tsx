@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Music, Info, Users, Headphones, Play } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function TutorialModal() {
+  const t = useTranslations("TutorialModal");
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -19,20 +21,19 @@ export function TutorialModal() {
           className="text-muted-foreground hover:text-primary transition-colors"
         >
           <Info className="w-4 h-4 mr-2" />
-          이용 방법 안내
+          {t("btn_text")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md gap-6">
         <DialogHeader className="gap-2">
           <DialogTitle className="text-2xl font-bold flex items-center justify-center gap-2">
             <Music className="h-6 w-6 text-primary" />
-            주크박스
+            {t("title")}
           </DialogTitle>
-          <DialogDescription className="text-center text-base">
-            같은 공간에 있는 사람들과 함께
-            <br />
-            음악을 즐길 수 있는 서비스입니다! 🎵
-          </DialogDescription>
+          <DialogDescription
+            className="text-center text-base"
+            dangerouslySetInnerHTML={{ __html: t.raw("description") }}
+          />
         </DialogHeader>
 
         <div className="space-y-2 rounded-lg">
@@ -42,13 +43,12 @@ export function TutorialModal() {
             </div>
             <div>
               <h4 className="font-semibold text-foreground mb-1">
-                👑 호스트 (방장)
+                {t("host_title")}
               </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                '방 만들기'를 통해 새로운 방을 개설하고,{" "}
-                <strong>현재 기기를 스피커로 사용</strong>하여 음악을
-                재생합니다.
-              </p>
+              <p
+                className="text-sm text-muted-foreground leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: t.raw("host_desc") }}
+              />
             </div>
           </div>
 
@@ -58,14 +58,12 @@ export function TutorialModal() {
             </div>
             <div>
               <h4 className="font-semibold text-foreground mb-1">
-                👥 참여자 (게스트)
+                {t("guest_title")}
               </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                호스트가 알려준{" "}
-                <span className="font-bold text-primary">4자리 코드</span>를
-                입력해 방에 접속합니다. 그 후 각자의 스마트폰에서 듣고 싶은
-                노래를 자유롭게 검색해 추가할 수 있습니다.
-              </p>
+              <p
+                className="text-sm text-muted-foreground leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: t.raw("guest_desc") }}
+              />
             </div>
           </div>
 
@@ -75,12 +73,12 @@ export function TutorialModal() {
             </div>
             <div>
               <h4 className="font-semibold text-foreground mb-1">
-                🎧 다 함께 감상하기
+                {t("listen_title")}
               </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                추가된 노래들은 플레이리스트에 등록되어 순서대로 재생됩니다. 다
-                함께 원하는 음악을 감상해 보세요!
-              </p>
+              <p
+                className="text-sm text-muted-foreground leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: t.raw("listen_desc") }}
+              />
             </div>
           </div>
         </div>

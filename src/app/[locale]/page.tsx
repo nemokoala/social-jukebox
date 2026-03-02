@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { TutorialModal } from "@/components/TutorialModal";
 
 export default function Home() {
+  const t = useTranslations("Index");
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
@@ -48,7 +50,7 @@ export default function Home() {
       router.push(`/room/${newCode}/host`);
     } catch (error) {
       console.error("Error creating room:", error);
-      setErrorText("Failed to create room. Please try again.");
+      setErrorText(t("create_error"));
       setIsCreating(false);
     }
   };
@@ -77,7 +79,7 @@ export default function Home() {
       router.push(`/room/${upperCode}`);
     } catch (error) {
       console.error("Error joining room:", error);
-      setErrorText("Room not found. Please check the code.");
+      setErrorText(t("join_error_not_found"));
       setIsJoining(false);
     }
   };
@@ -91,26 +93,22 @@ export default function Home() {
               <Music className="h-8 w-8 text-primary" />
             </div>
             <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl">
-              Social Jukebox
+              {t("title")}
             </h1>
-            <p className="text-muted-foreground">
-              Listen to music together with friends.
-            </p>
+            <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <TutorialModal />
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Join a Room</CardTitle>
-            <CardDescription>
-              Enter a 4-digit code to join an existing session.
-            </CardDescription>
+            <CardTitle>{t("join_title")}</CardTitle>
+            <CardDescription>{t("join_description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleJoinRoom} className="flex space-x-2">
               <Input
-                placeholder="Room Code (e.g. ABCD)"
+                placeholder={t("join_placeholder")}
                 className="uppercase"
                 maxLength={4}
                 value={roomCode}
@@ -124,7 +122,7 @@ export default function Home() {
                 {isJoining ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : null}
-                Join
+                {t("join_button")}
               </Button>
             </form>
             {errorText && (
@@ -138,16 +136,16 @@ export default function Home() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              {t("or")}
+            </span>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Create a Room</CardTitle>
-            <CardDescription>
-              Host a new session and play music on this device.
-            </CardDescription>
+            <CardTitle>{t("create_title")}</CardTitle>
+            <CardDescription>{t("create_description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -159,10 +157,10 @@ export default function Home() {
               {isCreating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  {t("create_loading")}
                 </>
               ) : (
-                "Create New Room"
+                t("create_button")
               )}
             </Button>
           </CardContent>

@@ -1,0 +1,42 @@
+{
+  "Index": {
+    "title": "Social Jukebox",
+    "description": "Listen to music together with friends.",
+    "join_title": "Join a Room",
+    "join_description": "Enter a 4-digit code to join an existing session.",
+    "join_placeholder": "Room Code (e.g. ABCD)",
+    "join_button": "Join",
+    "join_loading": "Joining...",
+    "join_error_not_found": "Room not found. Please check the code.",
+    "or": "Or",
+    "create_title": "Create a Room",
+    "create_description": "Host a new session and play music on this device.",
+    "create_button": "Create New Room",
+    "create_loading": "Creating...",
+    "create_error": "Failed to create room. Please try again."
+  },
+  "HostRoom": {
+    "error_room_not_found": "Room not found.",
+    "error_fetch_playlist": "Failed to fetch playlist.",
+    "toast_copied": "Room code copied to clipboard!",
+    "header_title": "Host Room",
+    "header_subtitle": "Ask friends to join with code:",
+    "waiting_title": "Waiting for the next song...",
+    "waiting_subtitle": "The queue is currently empty",
+    "now_playing": "Now Playing",
+    "up_next": "Up Next",
+    "songs_count": "{count} {count, plural, =1 {song} other {songs}}",
+    "queue_empty": "Queue is empty. <br /> Add songs from your phone!"
+  },
+  "TutorialModal": {
+    "btn_text": "How to use",
+    "title": "Jukebox",
+    "description": "It's a service where you can enjoy music<br />together with people in the same space! 🎵",
+    "host_title": "👑 Host",
+    "host_desc": "Create a new room through 'Create Room' and play music by <strong>using the current device as a speaker</strong>.",
+    "guest_title": "👥 Guest",
+    "guest_desc": "Enter the <span class=\"font-bold text-primary\">4-digit code</span> provided by the host to join the room. Then, you can freely search and add songs you want to hear from your own smartphone.",
+    "listen_title": "🎧 Enjoy together",
+    "listen_desc": "Added songs are registered in the playlist and played in order. Listen to your favorite music together!"
+  }
+}

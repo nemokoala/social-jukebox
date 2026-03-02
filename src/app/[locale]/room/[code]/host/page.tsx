@@ -3,7 +3,9 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import YouTube, { YouTubeEvent } from "react-youtube";
-import { notFound, useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +30,7 @@ export default function HostRoom({
   const queryClient = useQueryClient();
   const [currentSong, setCurrentSong] = useState<PlaylistSong | null>(null);
   const router = useRouter();
+  const t = useTranslations("HostRoom");
 
   useEffect(() => {
     params.then((p) => setCode(p.code.toUpperCase()));
@@ -98,13 +101,13 @@ export default function HostRoom({
   // 에러 핸들링
   useEffect(() => {
     if (roomError) {
-      toast.error("방을 찾을 수 없습니다.");
+      toast.error(t("error_room_not_found"));
       router.push("/");
     } else if (playlistError) {
-      toast.error("재생 목록을 가져올 수 없습니다.");
+      toast.error(t("error_fetch_playlist"));
       router.push("/");
     }
-  }, [roomError, playlistError, router]);
+  }, [roomError, playlistError, router, t]);
 
   // YouTube 플레이어 이벤트 핸들러에서 최신 상태에 접근하기 위한 ref (클로저 문제 방지)
   const currentSongRef = useRef<PlaylistSong | null>(null);
@@ -171,7 +174,7 @@ export default function HostRoom({
   const copyRoomCode = () => {
     if (code) {
       navigator.clipboard.writeText(code);
-      toast.success("Room code copied to clipboard!");
+      toast.success(t("toast_copied"));
     }
   };
 
@@ -185,9 +188,11 @@ export default function HostRoom({
               <Radio className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Host Room</h1>
+              <h1 className="text-xl font-bold tracking-tight">
+                {t("header_title")}
+              </h1>
               <p className="text-muted-foreground text-sm flex items-center gap-2">
-                Ask friends to join with code:
+                {t("header_subtitle")}
                 <Badge
                   variant="secondary"
                   className="font-mono text-sm px-2 cursor-pointer hover:bg-secondary/80 transition-colors"
@@ -213,11 +218,9 @@ export default function HostRoom({
                     <div className="h-24 w-24 rounded-full bg-muted/20 flex items-center justify-center mb-2">
                       <Disc3 className="h-12 w-12 text-muted-foreground animate-spin-slow opacity-50" />
                     </div>
-                    <p className="text-lg font-medium">
-                      Waiting for the next song...
-                    </p>
+                    <p className="text-lg font-medium">{t("waiting_title")}</p>
                     <p className="text-sm text-muted-foreground/60">
-                      The queue is currently empty
+                      {t("waiting_subtitle")}
                     </p>
                   </div>
                 ) : (
@@ -251,7 +254,7 @@ export default function HostRoom({
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                       </span>
-                      Now Playing
+                      {t("now_playing")}
                     </p>
                   </div>
                 </div>
@@ -266,12 +269,12 @@ export default function HostRoom({
         <div className="px-6 py-5 border-b bg-card/50">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Disc3 className="w-5 h-5 text-primary" />
-            Up Next
+            {t("up_next")}
             <Badge
               variant="secondary"
               className="ml-auto rounded-full font-mono"
             >
-              {playlist.length} {playlist.length === 1 ? "song" : "songs"}
+              {t("songs_count", { count: playlist.length })}
             </Badge>
           </h2>
         </div>
@@ -281,9 +284,10 @@ export default function HostRoom({
             {playlist.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-center space-y-3 p-6 border border-dashed rounded-xl bg-muted/10">
                 <Music className="h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  Queue is empty. <br /> Add songs from your phone!
-                </p>
+                <p
+                  className="text-sm text-muted-foreground"
+                  dangerouslySetInnerHTML={{ __html: t.raw("queue_empty") }}
+                />
               </div>
             ) : (
               playlist.map((song, index) => {
