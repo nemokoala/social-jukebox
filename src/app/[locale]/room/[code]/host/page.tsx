@@ -205,8 +205,22 @@ export default function HostRoom({
     }
   };
 
+  // 대기열에서 특정 곡 클릭 시 즉시 재생
+  const handlePlaySong = (song: PlaylistSong, index: number) => {
+    if (currentSong?.id === song.id) return; // 이미 재생 중이면 무시
+    setPlayIndex(index);
+    setCurrentSong(song);
+    if (roomId) {
+      supabase
+        .from("rooms")
+        .update({ play_index: index })
+        .eq("id", roomId)
+        .then(() => {});
+    }
+  };
+
   return (
-    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col md:flex-row h-dvh w-full bg-background text-foreground overflow-hidden">
       {/* 플레이어 사이드 */}
       <div className="flex-1 flex flex-col min-h-0 md:min-h-screen relative">
         <RoomHeader
@@ -328,11 +342,12 @@ export default function HostRoom({
                 return (
                   <Card
                     key={song.id}
+                    onClick={() => handlePlaySong(song, index)}
                     className={`transition-all duration-300 overflow-hidden relative group
                       ${
                         isPlaying
-                          ? "border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.1)] bg-primary/5 translate-x-1"
-                          : "hover:border-primary/30 hover:bg-muted/30"
+                          ? "border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.1)] bg-primary/5 translate-x-1 cursor-default"
+                          : "hover:border-primary/30 hover:bg-muted/30 cursor-pointer"
                       }
                     `}
                   >
