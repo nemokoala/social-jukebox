@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Music, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { TutorialModal } from "@/components/TutorialModal";
 
 export default function Home() {
   const router = useRouter();
@@ -84,16 +85,19 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950">
       <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="rounded-full bg-primary/10 p-4">
-            <Music className="h-8 w-8 text-primary" />
+        <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center space-y-2 text-center">
+            <div className="rounded-full bg-primary/10 p-4">
+              <Music className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl">
+              Social Jukebox
+            </h1>
+            <p className="text-muted-foreground">
+              Listen to music together with friends.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl">
-            Social Jukebox
-          </h1>
-          <p className="text-muted-foreground">
-            Listen to music together with friends.
-          </p>
+          <TutorialModal />
         </div>
 
         <Card>
