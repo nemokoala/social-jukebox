@@ -2,39 +2,15 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import YouTube, { YouTubeEvent } from "react-youtube";
+import { YouTubeEvent } from "react-youtube";
 import { useRouter } from "@/i18n/routing";
 import { useTranslations, useLocale } from "next-intl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import {
-  Music,
-  Play,
-  Disc3,
-  Info,
-  X,
-  RefreshCw,
-  Link2,
-  QrCode,
-  Copy,
-  Check,
-} from "lucide-react";
 import { toast } from "sonner";
-import { RoomHeader } from "@/components/RoomHeader";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
-import { QRCodeSVG } from "qrcode.react";
 
-interface PlaylistSong {
-  id: string;
-  video_id: string;
-  title: string;
-  thumbnail_url: string;
-  added_at: string;
-}
+import { HostPlayer } from "../../../../../components/host/HostPlayer";
+import { HostSidebar } from "../../../../../components/host/HostSidebar";
+import { PlaylistSong } from "../../../../../types/types";
 
 export default function HostRoom({
   params,
@@ -217,17 +193,15 @@ export default function HostRoom({
     height: "100%",
     width: "100%",
     playerVars: {
-      autoplay: 1, // 로드 시 동영상 자동 재생
+      autoplay: 1,
       controls: 1,
       modestbranding: 1,
-      playsinline: 1, // iOS에서 필수이며 일부 브라우저에서 백그라운드 재생에 도움이 됨
+      playsinline: 1,
     },
   };
 
   const handleReady = (event: YouTubeEvent) => {
-    // 플레이어 인스턴스를 ref에 저장 (1곡 반복 재생 시 직접 제어용)
     playerRef.current = event.target;
-    // 백그라운드 재생을 강제할 수 있도록 준비가 완료되면 명시적으로 재생을 호출합니다
     event.target.playVideo();
   };
 
@@ -238,7 +212,6 @@ export default function HostRoom({
     }
   };
 
-  // 공유 URL 생성 (로케일 포함)
   const roomUrl =
     typeof window !== "undefined" && code
       ? `${window.location.origin}/${locale}/room/${code}`
@@ -251,9 +224,8 @@ export default function HostRoom({
     setTimeout(() => setUrlCopied(false), 2000);
   };
 
-  // 대기열에서 특정 곡 클릭 시 즉시 재생
   const handlePlaySong = (song: PlaylistSong, index: number) => {
-    if (currentSong?.id === song.id) return; // 이미 재생 중이면 무시
+    if (currentSong?.id === song.id) return;
     setPlayIndex(index);
     setCurrentSong(song);
     if (roomId) {
@@ -266,368 +238,31 @@ export default function HostRoom({
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full bg-background text-foreground min-h-dvh md:h-dvh md:overflow-hidden">
-      {/* 플레이어 사이드 */}
-      <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
-        <RoomHeader
-          title={t("header_title")}
-          code={code || ""}
-          subtitle={t("header_subtitle")}
-          isHost
-          onCopy={copyRoomCode}
-        />
+    <div className="flex flex-col md:flex-row w-full bg-background text-foreground h-dvh overflow-y-auto">
+      <HostPlayer
+        code={code}
+        currentSong={currentSong}
+        showAlert={showAlert}
+        setShowAlert={setShowAlert}
+        opts={opts}
+        handleReady={handleReady}
+        handleStateChange={handleStateChange}
+        copyRoomCode={copyRoomCode}
+      />
 
-        <main className="flex flex-col p-4 md:p-6 bg-dot-pattern relative md:flex-1 md:justify-center md:overflow-auto">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]" />
-
-          {/* YouTube 플레이어 래퍼 */}
-          <div className="w-full max-w-5xl z-10 flex flex-col gap-4 md:gap-6 md:mt-auto md:mb-auto">
-            {/* 자동재생 차단 경고 알림 */}
-            <AnimatePresence>
-              {showAlert && (
-                <motion.div
-                  initial={{ opacity: 0, y: -12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12, scale: 0.97 }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                >
-                  <Alert className="bg-stone-400/10 border-primary/20 text-foreground relative pr-12">
-                    <Info className="h-4 w-4" />
-                    <AlertTitle className="font-semibold">
-                      {t("warning_autoplay_title")}
-                    </AlertTitle>
-                    <AlertDescription className="text-muted-foreground pr-4">
-                      {t("warning_autoplay_description")}
-                    </AlertDescription>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-2 h-8 w-8 text-muted-foreground hover:bg-primary/20 hover:text-foreground"
-                      onClick={() => setShowAlert(false)}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Close</span>
-                    </Button>
-                  </Alert>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <Card className="overflow-hidden border-border/50 shadow-lg md:shadow-2xl bg-card/80 backdrop-blur-xl ring-1 ring-white/10">
-              <div className="aspect-video relative bg-background flex items-center justify-center group overflow-hidden">
-                <AnimatePresence mode="wait">
-                  {!currentSong ? (
-                    <motion.div
-                      key="no-song"
-                      className="text-muted-foreground flex flex-col items-center gap-4"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <div className="h-24 w-24 rounded-full bg-muted/20 flex items-center justify-center mb-2">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 8,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                        >
-                          <Disc3 className="h-12 w-12 text-muted-foreground opacity-50" />
-                        </motion.div>
-                      </div>
-                      <p className="text-lg font-medium">
-                        {t("waiting_title")}
-                      </p>
-                      <p className="text-sm text-muted-foreground/60">
-                        {t("waiting_subtitle")}
-                      </p>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key={currentSong.video_id}
-                      className="absolute inset-0 w-full h-full"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      <YouTube
-                        videoId={currentSong.video_id}
-                        opts={opts}
-                        onReady={handleReady}
-                        onStateChange={handleStateChange}
-                        className="absolute inset-0 w-full h-full pointer-events-auto z-10"
-                        iframeClassName="w-full h-full border-0 absolute top-0 left-0"
-                      />
-                      {/* 재생 중인 동영상 뒤의 은은한 발광 효과 */}
-                      <div className="absolute -inset-4 bg-primary/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 -z-10" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* 곡 정보 바: 항상 고정 높이를 유지하고 내용만 opacity로 전환 (layout shift 방지) */}
-              <div className="h-20 border-t border-border/50 flex items-center">
-                <motion.div
-                  className="w-full p-4 bg-card flex items-center gap-4"
-                  animate={{ opacity: currentSong ? 1 : 0 }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                >
-                  <div className="h-12 w-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                    <Music className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3
-                      className="font-semibold text-lg line-clamp-1"
-                      dangerouslySetInnerHTML={{
-                        __html: currentSong?.title ?? "",
-                      }}
-                    />
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <span className="relative flex h-2 w-2">
-                        <motion.span
-                          className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"
-                          animate={{
-                            scale: currentSong ? [1, 2, 1] : 1,
-                            opacity: currentSong ? [0.75, 0, 0.75] : 0,
-                          }}
-                          transition={{
-                            duration: 1.2,
-                            repeat: currentSong ? Infinity : 0,
-                            ease: "easeOut",
-                          }}
-                        />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                      </span>
-                      {t("now_playing")}
-                    </p>
-                  </div>
-                </motion.div>
-              </div>
-            </Card>
-          </div>
-        </main>
-      </div>
-
-      {/* 오른쪽 사이드: 대기열 사이드바 - 모바일은 자연포 하단 배치, 데스크탑은 고정 */}
-      <motion.div
-        className="w-full md:w-[400px] flex flex-col border-t md:border-t-0 md:border-l bg-card/30 backdrop-blur-xl shrink-0 md:h-full"
-        initial={{ opacity: 0, x: 24 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-      >
-        <div className="px-6 py-5 border-b bg-card/50">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Disc3 className="w-5 h-5 text-primary" />
-            {t("up_next")}
-            <Badge
-              variant="secondary"
-              className="ml-auto rounded-full font-mono"
-            >
-              {t("songs_count", { count: playlist.length })}
-            </Badge>
-            {/* QR / 공유 패널 토글 */}
-            <Button
-              variant={showShare ? "secondary" : "ghost"}
-              size="icon"
-              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowShare((v) => !v)}
-              title={t("btn_share")}
-            >
-              <motion.div
-                animate={{ rotate: showShare ? 45 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <QrCode className="h-3.5 w-3.5" />
-              </motion.div>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-              onClick={handleReconnect}
-              disabled={isReconnecting}
-              title={t("btn_reconnect")}
-            >
-              <motion.div
-                animate={{ rotate: isReconnecting ? 360 : 0 }}
-                transition={{
-                  duration: 0.8,
-                  repeat: isReconnecting ? Infinity : 0,
-                  ease: "linear",
-                }}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </motion.div>
-            </Button>
-          </h2>
-        </div>
-
-        {/* QR 코드 + URL 복사 공유 패널 (접었다 폈다) */}
-        <AnimatePresence initial={false}>
-          {showShare && (
-            <motion.div
-              key="share-panel"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="border-b bg-card/50"
-            >
-              {/* 모바일: 가로 배치 / 데스크탑: 세로 배치 */}
-              <div className="p-4 flex flex-row md:flex-col items-center gap-4">
-                {/* QR 코드 + 코드 표시 (모바일에서는 왼쪽) */}
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div className="p-2.5 rounded-xl bg-white shadow-md ring-1 ring-border/20">
-                    <QRCodeSVG
-                      value={roomUrl}
-                      size={120}
-                      level="M"
-                      includeMargin={false}
-                    />
-                  </div>
-                  {/* 방 코드 크게 표시 */}
-                  <div className="flex flex-col items-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                      {t("share_code_label")}
-                    </p>
-                    <p className="text-3xl font-black font-mono tracking-[0.2em] text-primary">
-                      {code}
-                    </p>
-                  </div>
-                </div>
-
-                {/* URL + 코피 + 힌트 (모바일에서는 오른쪽, 데스크탑에서는 아래쪽) */}
-                <div className="flex-1 w-full flex flex-col gap-2 justify-center">
-                  <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
-                    <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <p className="flex-1 text-[11px] text-muted-foreground font-mono truncate">
-                      {roomUrl}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-                      onClick={copyRoomUrl}
-                    >
-                      <AnimatePresence mode="wait" initial={false}>
-                        {urlCopied ? (
-                          <motion.div
-                            key="check"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            transition={{ duration: 0.15 }}
-                          >
-                            <Check className="h-3.5 w-3.5 text-green-500" />
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="copy"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            transition={{ duration: 0.15 }}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </Button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground text-center md:text-center">
-                    {t("share_hint")}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <ScrollArea className="md:flex-1 md:overflow-y-auto px-4">
-          <div className="py-4 space-y-3 min-h-[40vh] md:min-h-0">
-            <AnimatePresence>
-              {playlist.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  className="flex flex-col items-center justify-center h-40 text-center space-y-3 p-6 border border-dashed rounded-xl bg-muted/10"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Music className="h-8 w-8 text-muted-foreground/50" />
-                  <p
-                    className="text-sm text-muted-foreground"
-                    dangerouslySetInnerHTML={{ __html: t.raw("queue_empty") }}
-                  />
-                </motion.div>
-              ) : (
-                playlist.map((song, index) => {
-                  const isPlaying = currentSong?.id === song.id;
-
-                  return (
-                    <motion.div
-                      key={song.id}
-                      layout
-                      initial={{ opacity: 0, x: 16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -16 }}
-                      transition={{
-                        duration: 0.3,
-                        delay: index * 0.04,
-                        ease: "easeOut",
-                      }}
-                    >
-                      <Card
-                        onClick={() => handlePlaySong(song, index)}
-                        className={`transition-colors duration-200 overflow-hidden relative group
-                          ${
-                            isPlaying
-                              ? "border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.1)] bg-primary/5 cursor-default"
-                              : "hover:border-primary/30 hover:bg-muted/30 cursor-pointer"
-                          }
-                        `}
-                      >
-                        <motion.div
-                          className="absolute left-0 top-0 bottom-0 w-1 bg-primary"
-                          initial={{ scaleY: 0 }}
-                          animate={{ scaleY: isPlaying ? 1 : 0 }}
-                          transition={{ duration: 0.25 }}
-                          style={{ originY: 0.5 }}
-                        />
-                        <CardContent className="p-3 flex items-start space-x-3">
-                          <motion.div
-                            className={`mt-1 h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0
-                            ${isPlaying ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors"}`}
-                            animate={{ scale: isPlaying ? 1.1 : 1 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            {isPlaying ? (
-                              <Play className="h-3 w-3 fill-current" />
-                            ) : (
-                              index + 1
-                            )}
-                          </motion.div>
-
-                          <div className="flex-1 min-w-0 flex flex-col gap-1">
-                            <p
-                              className={`text-sm font-medium line-clamp-2 leading-tight ${isPlaying ? "text-primary" : "text-foreground"}`}
-                              dangerouslySetInnerHTML={{ __html: song.title }}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })
-              )}
-            </AnimatePresence>
-          </div>
-        </ScrollArea>
-      </motion.div>
+      <HostSidebar
+        code={code}
+        playlist={playlist}
+        currentSong={currentSong}
+        showShare={showShare}
+        setShowShare={setShowShare}
+        handleReconnect={handleReconnect}
+        isReconnecting={isReconnecting}
+        roomUrl={roomUrl}
+        urlCopied={urlCopied}
+        copyRoomUrl={copyRoomUrl}
+        handlePlaySong={handlePlaySong}
+      />
     </div>
   );
 }
