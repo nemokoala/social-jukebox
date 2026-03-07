@@ -29,6 +29,9 @@
     "queue_empty": "Queue is empty. <br /> Add songs from your phone!",
     "toast_reconnected": "Connection restored.",
     "btn_reconnect": "Reconnect",
+    "btn_share": "QR Code / Share Link",
+    "share_code_label": "Room Code",
+    "share_hint": "Scan the QR code or copy the link to share",
     "warning_autoplay_title": "Auto-play Warning",
     "warning_autoplay_description": "Auto-playing next songs might not work if the browser tab is changed. We recommend keeping this in a separate window to ensure seamless playback."
   },
@@ -45,7 +48,7 @@
   },
   "GuestRoom": {
     "loading_room": "Loading Room...",
-    "header_title": "Room",
+    "header_title": "Guest Room",
     "header_code": "Code:",
     "btn_add_song": "Add Song",
     "now_playing": "Now Playing",

@@ -29,6 +29,9 @@
     "queue_empty": "대기열이 비어 있습니다. <br /> 스마트폰으로 노래를 추가해보세요!",
     "toast_reconnected": "연결이 복구되었습니다.",
     "btn_reconnect": "연결 재시도",
+    "btn_share": "QR 코드 / 링크 공유",
+    "share_code_label": "방 코드",
+    "share_hint": "QR코드를 스캔하거나 링크를 복사해 공유하세요",
     "warning_autoplay_title": "자동 재생 알림",
     "warning_autoplay_description": "브라우저 탭을 변경하면 다음 곡이 자동으로 재생되지 않을 수 있습니다. 원활한 음악 재생을 위해 이 창만 별도의 브라우저 창으로 분리해서 띄워두는 것을 권장합니다."
   },
@@ -45,7 +48,7 @@
   },
   "GuestRoom": {
     "loading_room": "방 정보를 불러오는 중...",
-    "header_title": "음악방",
+    "header_title": "게스트 페이지",
     "header_code": "코드:",
     "btn_add_song": "노래 추가",
     "now_playing": "지금 재생 중",

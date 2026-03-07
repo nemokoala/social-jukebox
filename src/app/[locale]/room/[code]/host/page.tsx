@@ -4,17 +4,29 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import YouTube, { YouTubeEvent } from "react-youtube";
 import { useRouter } from "@/i18n/routing";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Music, Play, Disc3, Info, X, RefreshCw } from "lucide-react";
+import {
+  Music,
+  Play,
+  Disc3,
+  Info,
+  X,
+  RefreshCw,
+  Link2,
+  QrCode,
+  Copy,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 
 interface PlaylistSong {
   id: string;
@@ -37,8 +49,12 @@ export default function HostRoom({
   // 구독 재등록 트리거: 증가시키면 useEffect 재실행 → 채널 cleanup + 재구독
   const [subscriptionKey, setSubscriptionKey] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  // 공유 패널 (QR 코드 + URL 복사)
+  const [showShare, setShowShare] = useState(true);
+  const [urlCopied, setUrlCopied] = useState(false);
   const router = useRouter();
   const t = useTranslations("HostRoom");
+  const locale = useLocale();
 
   useEffect(() => {
     params.then((p) => setCode(p.code.toUpperCase()));
@@ -222,6 +238,19 @@ export default function HostRoom({
     }
   };
 
+  // 공유 URL 생성 (로케일 포함)
+  const roomUrl =
+    typeof window !== "undefined" && code
+      ? `${window.location.origin}/${locale}/room/${code}`
+      : "";
+
+  const copyRoomUrl = () => {
+    if (!roomUrl) return;
+    navigator.clipboard.writeText(roomUrl);
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
+  };
+
   // 대기열에서 특정 곡 클릭 시 즉시 재생
   const handlePlaySong = (song: PlaylistSong, index: number) => {
     if (currentSong?.id === song.id) return; // 이미 재생 중이면 무시
@@ -237,9 +266,9 @@ export default function HostRoom({
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-dvh w-full bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col md:flex-row w-full bg-background text-foreground min-h-dvh md:h-dvh md:overflow-hidden">
       {/* 플레이어 사이드 */}
-      <div className="flex-1 flex flex-col min-h-0 md:min-h-screen relative">
+      <div className="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden relative">
         <RoomHeader
           title={t("header_title")}
           code={code || ""}
@@ -248,11 +277,11 @@ export default function HostRoom({
           onCopy={copyRoomCode}
         />
 
-        <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 bg-dot-pattern relative overflow-auto">
+        <main className="flex flex-col p-4 md:p-6 bg-dot-pattern relative md:flex-1 md:justify-center md:overflow-auto">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]" />
 
           {/* YouTube 플레이어 래퍼 */}
-          <div className="w-full max-w-5xl z-10 flex flex-col gap-4 md:gap-6 mt-auto mb-auto">
+          <div className="w-full max-w-5xl z-10 flex flex-col gap-4 md:gap-6 md:mt-auto md:mb-auto">
             {/* 자동재생 차단 경고 알림 */}
             <AnimatePresence>
               {showAlert && (
@@ -382,9 +411,9 @@ export default function HostRoom({
         </main>
       </div>
 
-      {/* 오른쪽 사이드: 대기열 사이드바 (모바일은 하단으로 이동) */}
+      {/* 오른쪽 사이드: 대기열 사이드바 - 모바일은 자연포 하단 배치, 데스크탑은 고정 */}
       <motion.div
-        className="w-full md:w-[400px] h-[40vh] md:h-full flex flex-col border-t md:border-t-0 md:border-l bg-card/30 backdrop-blur-xl shrink-0"
+        className="w-full md:w-[400px] flex flex-col border-t md:border-t-0 md:border-l bg-card/30 backdrop-blur-xl shrink-0 md:h-full"
         initial={{ opacity: 0, x: 24 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
@@ -399,6 +428,21 @@ export default function HostRoom({
             >
               {t("songs_count", { count: playlist.length })}
             </Badge>
+            {/* QR / 공유 패널 토글 */}
+            <Button
+              variant={showShare ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowShare((v) => !v)}
+              title={t("btn_share")}
+            >
+              <motion.div
+                animate={{ rotate: showShare ? 45 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <QrCode className="h-3.5 w-3.5" />
+              </motion.div>
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -421,8 +465,89 @@ export default function HostRoom({
           </h2>
         </div>
 
-        <ScrollArea className="flex-1 px-4">
-          <div className="py-4 space-y-3">
+        {/* QR 코드 + URL 복사 공유 패널 (접었다 폈다) */}
+        <AnimatePresence initial={false}>
+          {showShare && (
+            <motion.div
+              key="share-panel"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="border-b bg-card/50"
+            >
+              {/* 모바일: 가로 배치 / 데스크탑: 세로 배치 */}
+              <div className="p-4 flex flex-row md:flex-col items-center gap-4">
+                {/* QR 코드 + 코드 표시 (모바일에서는 왼쪽) */}
+                <div className="flex flex-col items-center gap-2 shrink-0">
+                  <div className="p-2.5 rounded-xl bg-white shadow-md ring-1 ring-border/20">
+                    <QRCodeSVG
+                      value={roomUrl}
+                      size={120}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  </div>
+                  {/* 방 코드 크게 표시 */}
+                  <div className="flex flex-col items-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      {t("share_code_label")}
+                    </p>
+                    <p className="text-3xl font-black font-mono tracking-[0.2em] text-primary">
+                      {code}
+                    </p>
+                  </div>
+                </div>
+
+                {/* URL + 코피 + 힌트 (모바일에서는 오른쪽, 데스크탑에서는 아래쪽) */}
+                <div className="flex-1 w-full flex flex-col gap-2 justify-center">
+                  <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+                    <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <p className="flex-1 text-[11px] text-muted-foreground font-mono truncate">
+                      {roomUrl}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={copyRoomUrl}
+                    >
+                      <AnimatePresence mode="wait" initial={false}>
+                        {urlCopied ? (
+                          <motion.div
+                            key="check"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            <Check className="h-3.5 w-3.5 text-green-500" />
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="copy"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground text-center md:text-center">
+                    {t("share_hint")}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <ScrollArea className="md:flex-1 md:overflow-y-auto px-4">
+          <div className="py-4 space-y-3 min-h-[40vh] md:min-h-0">
             <AnimatePresence>
               {playlist.length === 0 ? (
                 <motion.div
