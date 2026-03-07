@@ -5,12 +5,13 @@ import { supabase } from "@/lib/supabase";
 import { YouTubeEvent } from "react-youtube";
 import { useRouter } from "@/i18n/routing";
 import { useTranslations, useLocale } from "next-intl";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRoomQuery, usePlaylistQuery } from "@/queries";
 import { toast } from "sonner";
 
 import { HostPlayer } from "../../../../../components/host/HostPlayer";
 import { HostSidebar } from "../../../../../components/host/HostSidebar";
-import { PlaylistSong } from "../../../../../types/types";
+import { PlaylistSong } from "@/types/types";
 
 export default function HostRoom({
   params,
@@ -37,24 +38,7 @@ export default function HostRoom({
   }, [params]);
 
   // 1. 방 정보 가져오기 (play_index 포함)
-  const { data: roomData, error: roomError } = useQuery({
-    queryKey: ["room", code],
-    queryFn: async () => {
-      if (!code) return null;
-      const { data: room, error } = await supabase
-        .from("rooms")
-        .select("id, play_index")
-        .eq("code", code)
-        .eq("is_active", true)
-        .single();
-
-      if (error || !room) {
-        throw error;
-      }
-      return room as { id: string; play_index: number };
-    },
-    enabled: !!code,
-  });
+  const { data: roomData, error: roomError } = useRoomQuery(code);
 
   const roomId = roomData?.id;
 
@@ -68,21 +52,8 @@ export default function HostRoom({
   }, [roomData]);
 
   // 2. 재생 목록 가져오기 (played_at 필터 제거 - 전체 목록 유지)
-  const { data: playlist = [], isError: playlistError } = useQuery({
-    queryKey: ["playlist", roomId],
-    queryFn: async () => {
-      if (!roomId) return [];
-      const { data, error } = await supabase
-        .from("playlist")
-        .select("*")
-        .eq("room_id", roomId)
-        .order("added_at", { ascending: true });
-
-      if (error) throw error;
-      return data as PlaylistSong[];
-    },
-    enabled: !!roomId,
-  });
+  const { data: playlist = [], isError: playlistError } =
+    usePlaylistQuery(roomId);
 
   useEffect(() => {
     if (!roomId) return;

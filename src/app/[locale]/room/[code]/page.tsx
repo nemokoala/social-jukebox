@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import { SearchDialog } from "@/components/SearchDialog";
-import { useQuery, useQueryClient } from "@tanstack/react-query"; // Keep useQueryClient
+import { useQueryClient } from "@tanstack/react-query"; // Keep useQueryClient
+import { useRoomQuery, usePlaylistQuery } from "@/queries";
+import { PlaylistSong } from "@/types/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -13,14 +15,6 @@ import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { RoomHeader } from "@/components/RoomHeader";
 import { motion, AnimatePresence } from "framer-motion";
-
-interface PlaylistSong {
-  id: string;
-  video_id: string;
-  title: string;
-  thumbnail_url: string;
-  added_at: string;
-}
 
 export default function GuestRoom({
   params,
@@ -40,24 +34,17 @@ export default function GuestRoom({
   }, [params]);
 
   // 1. 방 ID 및 play_index 가져오기
-  const { data: roomData, isLoading: isRoomLoading } = useQuery({
-    queryKey: ["room", code],
-    queryFn: async () => {
-      if (!code) return null;
-      const { data: room, error } = await supabase
-        .from("rooms")
-        .select("id, play_index")
-        .eq("code", code)
-        .eq("is_active", true)
-        .single();
+  const {
+    data: roomData,
+    isLoading: isRoomLoading,
+    error: roomError,
+  } = useRoomQuery(code);
 
-      if (error || !room) {
-        notFound();
-      }
-      return room as { id: string; play_index: number };
-    },
-    enabled: !!code,
-  });
+  useEffect(() => {
+    if (roomError) {
+      notFound();
+    }
+  }, [roomError]);
 
   const roomId = roomData?.id;
 
@@ -69,21 +56,8 @@ export default function GuestRoom({
   }, [roomData]);
 
   // 2. 전체 재생목록 가져오기 (played_at 필터 없이 전체 목록 유지)
-  const { data: playlist = [], isLoading: isPlaylistLoading } = useQuery({
-    queryKey: ["playlist", roomId],
-    queryFn: async () => {
-      if (!roomId) return [];
-      const { data, error } = await supabase
-        .from("playlist")
-        .select("*")
-        .eq("room_id", roomId)
-        .order("added_at", { ascending: true });
-
-      if (error) throw error;
-      return data as PlaylistSong[];
-    },
-    enabled: !!roomId,
-  });
+  const { data: playlist = [], isLoading: isPlaylistLoading } =
+    usePlaylistQuery(roomId);
 
   // play_index 기반으로 현재곡 / 큐 계산
   const safeIndex =

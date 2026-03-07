@@ -115,7 +115,7 @@ export function HostSidebar({
         </h2>
       </div>
 
-      <ScrollArea className="flex-1 overflow-y-auto overflow-x-hidden md:px-4">
+      <ScrollArea className="flex-1 overflow-y-auto overflow-x-hidden md:px-4 pb-4">
         <AnimatePresence initial={false}>
           {showShare && (
             <motion.div
