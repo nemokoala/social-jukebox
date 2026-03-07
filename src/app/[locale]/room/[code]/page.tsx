@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"; // Keep useQue
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Music, Play, Plus, Search, Disc3 } from "lucide-react";
+import { Music, Play, Plus, Search, Disc3, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { RoomHeader } from "@/components/RoomHeader";
@@ -30,6 +30,9 @@ export default function GuestRoom({
   const [code, setCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [playIndex, setPlayIndex] = useState(0);
+  // 구독 재등록 트리거: 증가시키면 useEffect 재실행 → 채널 cleanup + 재구독
+  const [subscriptionKey, setSubscriptionKey] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const t = useTranslations("GuestRoom");
 
   useEffect(() => {
@@ -96,8 +99,9 @@ export default function GuestRoom({
   useEffect(() => {
     if (!roomId) return;
 
+    // subscriptionKey가 바뀔 때마다 채널을 새로 등록 (재연결 시 사용)
     const playlistChannel = supabase
-      .channel(`playlist_room_${roomId}`)
+      .channel(`playlist_room_${roomId}_${subscriptionKey}`)
       .on(
         "postgres_changes",
         {
@@ -115,7 +119,7 @@ export default function GuestRoom({
 
     // rooms 테이블의 play_index 변경 실시간 구독
     const roomChannel = supabase
-      .channel(`room_play_index_${roomId}`)
+      .channel(`room_play_index_${roomId}_${subscriptionKey}`)
       .on(
         "postgres_changes",
         {
@@ -137,7 +141,18 @@ export default function GuestRoom({
       supabase.removeChannel(playlistChannel);
       supabase.removeChannel(roomChannel);
     };
-  }, [roomId, queryClient]);
+  }, [roomId, queryClient, subscriptionKey]);
+
+  // 수동 재연결: 최신 데이터 fetch + 구독 채널 재등록
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["room", code] }),
+      queryClient.invalidateQueries({ queryKey: ["playlist", roomId] }),
+    ]);
+    setSubscriptionKey((k) => k + 1);
+    setIsReconnecting(false);
+  };
 
   if (isRoomLoading || !code) {
     return (
@@ -322,6 +337,25 @@ export default function GuestRoom({
                 {queue.length}
               </Badge>
             </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={handleReconnect}
+              disabled={isReconnecting}
+              title="연결 재시도"
+            >
+              <motion.div
+                animate={{ rotate: isReconnecting ? 360 : 0 }}
+                transition={{
+                  duration: 0.8,
+                  repeat: isReconnecting ? Infinity : 0,
+                  ease: "linear",
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </motion.div>
+            </Button>
           </div>
 
           <div className="flex-1 border rounded-xl overflow-hidden bg-card/50 shadow-sm">

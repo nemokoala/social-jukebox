@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Music, Play, Disc3, Info, X } from "lucide-react";
+import { Music, Play, Disc3, Info, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -34,6 +34,9 @@ export default function HostRoom({
   const [currentSong, setCurrentSong] = useState<PlaylistSong | null>(null);
   const [playIndex, setPlayIndex] = useState(0);
   const [showAlert, setShowAlert] = useState(true);
+  // 구독 재등록 트리거: 증가시키면 useEffect 재실행 → 채널 cleanup + 재구독
+  const [subscriptionKey, setSubscriptionKey] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const router = useRouter();
   const t = useTranslations("HostRoom");
 
@@ -92,8 +95,9 @@ export default function HostRoom({
   useEffect(() => {
     if (!roomId) return;
 
+    // subscriptionKey가 바뀔 때마다 채널을 새로 등록 (재연결 시 사용)
     const channel = supabase
-      .channel(`host_room_${roomId}`)
+      .channel(`host_room_${roomId}_${subscriptionKey}`)
       .on(
         "postgres_changes",
         {
@@ -111,7 +115,19 @@ export default function HostRoom({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, queryClient]);
+  }, [roomId, queryClient, subscriptionKey]);
+
+  // 수동 재연결: 최신 데이터 fetch + 구독 채널 재등록
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["room", code] }),
+      queryClient.invalidateQueries({ queryKey: ["playlist", roomId] }),
+    ]);
+    setSubscriptionKey((k) => k + 1);
+    setIsReconnecting(false);
+    toast.success(t("toast_reconnected"));
+  };
 
   // 에러 핸들링
   useEffect(() => {
@@ -383,6 +399,25 @@ export default function HostRoom({
             >
               {t("songs_count", { count: playlist.length })}
             </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+              onClick={handleReconnect}
+              disabled={isReconnecting}
+              title={t("btn_reconnect")}
+            >
+              <motion.div
+                animate={{ rotate: isReconnecting ? 360 : 0 }}
+                transition={{
+                  duration: 0.8,
+                  repeat: isReconnecting ? Infinity : 0,
+                  ease: "linear",
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </motion.div>
+            </Button>
           </h2>
         </div>
 
