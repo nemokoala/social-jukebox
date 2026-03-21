@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   // Vercel Cron 인증 확인
   const authHeader = request.headers.get("authorization");
@@ -38,10 +40,10 @@ export async function GET(request: Request) {
       deletedCount: count,
       message: `${twoDaysAgo.toISOString()} 이전의 방 데이터를 정리했습니다.`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("데이터 정리 크론 오류:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: (error as Error).message },
       { status: 500 },
     );
   }
