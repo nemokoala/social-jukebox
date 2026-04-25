@@ -205,7 +205,7 @@ export function HostSidebar({
               >
                 <Music className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground/50" />
                 <p
-                  className="text-xs md:text-sm text-muted-foreground"
+                  className="text-xs md:text-sm text-muted-foreground flex items-center"
                   dangerouslySetInnerHTML={{ __html: t.raw("queue_empty") }}
                 />
               </motion.div>
@@ -228,11 +228,11 @@ export function HostSidebar({
                   >
                     <Card
                       onClick={() => handlePlaySong(song, index)}
-                      className={`transition-colors duration-200 overflow-hidden relative group
+                      className={`relative group overflow-hidden gap-0 py-0 shadow-sm shadow-fuchsia-500/5 transition-colors duration-200
                         ${
                           isPlaying
-                            ? "border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.1)] bg-primary/5 cursor-default"
-                            : "hover:border-primary/30 hover:bg-muted/30 cursor-pointer"
+                            ? "border-primary/40 bg-primary/5 cursor-default"
+                            : "border-white/50 hover:border-primary/25 hover:bg-muted/20 cursor-pointer dark:border-white/10"
                         }
                       `}
                     >
@@ -243,9 +243,9 @@ export function HostSidebar({
                         transition={{ duration: 0.25 }}
                         style={{ originY: 0.5 }}
                       />
-                      <CardContent className="p-2.5 md:p-3 flex items-start space-x-2.5 md:space-x-3">
+                      <CardContent className="flex min-h-14 items-center space-x-2.5 p-2.5 md:min-h-16 md:space-x-3 md:p-3">
                         <motion.div
-                          className={`mt-0.5 h-5 w-5 md:h-6 md:w-6 rounded-full flex items-center justify-center text-[10px] md:text-xs font-medium shrink-0
+                          className={`h-5 w-5 md:h-6 md:w-6 rounded-full flex items-center justify-center text-[10px] md:text-xs font-medium shrink-0
                           ${isPlaying ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary transition-colors"}`}
                           animate={{ scale: isPlaying ? 1.1 : 1 }}
                           transition={{ duration: 0.2 }}
@@ -257,7 +257,7 @@ export function HostSidebar({
                           )}
                         </motion.div>
 
-                        <div className="flex-1 min-w-0 flex flex-col gap-0.5 md:gap-1">
+                        <div className="flex min-w-0 flex-1 items-center">
                           <p
                             className={`text-xs md:text-sm font-medium line-clamp-2 leading-tight ${isPlaying ? "text-primary" : "text-foreground"}`}
                             dangerouslySetInnerHTML={{ __html: song.title }}

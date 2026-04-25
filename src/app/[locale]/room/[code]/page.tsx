@@ -395,9 +395,6 @@ export default function GuestRoom({
                                   alt=""
                                   className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
                                 />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Play className="w-4 h-4 text-white ml-0.5" />
-                                </div>
                               </div>
 
                               <div className="flex-1 min-w-0 pr-2">
