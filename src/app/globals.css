@@ -129,3 +129,34 @@
     background-attachment: fixed;
   }
 }
+
+@layer base {
+  /* 브랜드 컬러 기반 커스텀 스크롤바 (기본 회색 스크롤바 대체) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--primary) 45%, transparent) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--primary) 40%, transparent);
+    background-clip: content-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--primary) 65%, transparent);
+    background-clip: content-box;
+  }
+  /* 위/아래 화살표 버튼 제거 */
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+}
